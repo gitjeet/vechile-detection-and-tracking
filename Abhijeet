@@ -4,12 +4,21 @@ import numpy as np
 small=0
 big=0
 medium=0
+small1=0
+big1=0
+medium1=0
+road=0
+road1=0
 first_frame=None
+first_frame1=None
 status_list=[None,None]
 times=[]
+status_list1=[None,None]
+times1=[]
 df=pandas.DataFrame(columns=["Start","End"])
-
-video=cv2.VideoCapture('C:\\Users\Abhijeet\\Desktop\\Road traffic video for object recognition.mp4')
+df1=pandas.DataFrame(columns=["Start","End"])
+video=cv2.VideoCapture('http://admin:abcd1234@103.134.248.108/1')
+video1=cv2.VideoCapture('C:/Users/Abhijeet/Desktop/vechile detection/A3 A-road Traffic UK HD - rush hour - British Highway traffic May 2017.mp4')
 
 while True:
     check, frame = video.read()
@@ -66,14 +75,93 @@ while True:
         if status==1:
             times.append(datetime.now())
         break
+while True:
+    check1, frame1 = video1.read()
+    status1=0
+    gray1=cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+    gray1=cv2.GaussianBlur(gray1,(21,21),0)
 
+    if first_frame1 is None:
+        first_frame1=gray1
+        continue
+
+    delta_frame1=cv2.absdiff(first_frame1,gray1)
+    thresh_frame1=cv2.threshold(delta_frame1,10, 255, cv2.THRESH_BINARY)[1]
+    thresh_frame1=cv2.dilate(thresh_frame1, None, iterations=2)
+
+    cnts1,_=cv2.findContours(thresh_frame1.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    for contour1 in cnts1:
+        if cv2.contourArea(contour1) < 10000:
+
+            continue
+        status1=1
+        area1 = cv2.contourArea(contour1)
+        (x1, y1, w1, h1)=cv2.boundingRect(contour1)
+        cv2.rectangle(frame1, (x1, y1), (x1+w1, y1+h1), (0,255,0), 3)
+        rect_area1 = w1*h1
+        extent1 = area1/rect_area1
+        if (extent1) < 0.3:
+            small1+=1
+            continue
+        if extent1 >=0.3 and extent1 < 0.5 :
+            medium1+=1
+        if extent1 >=0.5 :
+            big1+=1
+    status_list1.append(status1)
+
+    status_list1=status_list1[-2:]
+
+
+    if status_list1[-1]==1 and status_list1[-2]==0:
+        times1.append(datetime.now())
+    if status_list1[-1]==0 and status_list1[-2]==1:
+        times1.append(datetime.now())
+
+
+
+    cv2.imshow("Gray Frame",gray1)
+    cv2.imshow("Delta Frame",delta_frame1)
+    cv2.imshow("Threshold Frame",thresh_frame1)
+    cv2.imshow("Color Frame",frame1)
+
+    key=cv2.waitKey(1)
+
+    if key==ord('q'):
+        if status==1:
+            times1.append(datetime.now())
+        break
+
+
+
+print("--------------------------------Marks for the Road 1 Is ------------------------------------")
+print( "Heavy Size Vehicle = ",big )
+print("Medium Size Vehicle = ",medium)
+print("Small Size Vechile = ",small)
+road=0.4*big+0.3*medium+0.2*small
+print(road)
 print(status_list)
 print(times)
-print(big ,small,medium)
+print("--------------------------------Marks For the Road 2 Is--------------------------------------")
+print("Heavy Size Vehicle ",big1)
+print("Medium Size Vehicle",medium1)
+print("Small Size Vehicle",small1)
+road1=0.4*big1 + 0.3*medium1+ 0.2*small1
+print(road1)
+print(status_list1)
+print(times1)
+if road>road1:
+    print("-----------------------Road 2 will be given Preference--------------------------------------")
+else :
+    print("-----------------------Road 1 will be given Preference-------------------------------------")
 for i in range(0,len(times),2):
     df=df.append({"Start":times[i],"End":times[i+1]},ignore_index=True)
 
 df.to_csv("Times.csv")
+for i in range(0,len(times),2):
+    df=df.append({"Start":times[i],"End":times[i+1]},ignore_index=True)
 
+df.to_csv("Times1.csv")
 video.release()
+video1.release()
 cv2.destroyAllWindows
